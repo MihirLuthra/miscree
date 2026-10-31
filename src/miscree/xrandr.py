@@ -8,6 +8,7 @@ import subprocess
 from typing import TYPE_CHECKING
 
 from miscree import paths, system
+from miscree.logs import log
 from miscree.model import Mode, Output
 
 if TYPE_CHECKING:
@@ -116,6 +117,7 @@ def apply(candidates: list["Layout"], outputs: list[Output]) -> "Layout":
     for layout in candidates:
         proc = system.run(["xrandr", *layout.xrandr_args(outputs)], check=False)
         if proc.returncode == 0:
+            log.info("applied: %s", layout.description)
             _run_hook(layout)
             return layout
         errors.append(f"{layout.description}: {proc.stderr.strip()}")
@@ -125,5 +127,6 @@ def apply(candidates: list["Layout"], outputs: list[Output]) -> "Layout":
 def _run_hook(layout: "Layout") -> None:
     hook = paths.HOOK_FILE
     if hook.is_file() and os.access(hook, os.X_OK):
+        log.info("running %s", hook)
         subprocess.Popen([str(hook)], env={**os.environ, "MISCREE_LAYOUT": layout.description},
                          start_new_session=True)

@@ -6,7 +6,8 @@ import argparse
 import shutil
 import sys
 
-from miscree import __version__, integrate, session, system
+from miscree import __version__, integrate, logs, report, session, system
+from miscree.logs import log
 from miscree.policy import TARGETS, Screens
 
 DESCRIPTION = """\
@@ -19,6 +20,7 @@ Laptop / external display control for i3 on X11.
   list                  show screens, their kind and zoom
   setup / teardown      hook this repo into i3 and the login, or unhook it
   session-init          login hook: print env for the configured render scale
+  report                print everything needed to debug a problem (versions, screens, config, log)
 """
 
 
@@ -33,6 +35,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("hotplug", help="apply plug/unplug rules once")
     sub.add_parser("list", help="show screens")
     sub.add_parser("session-init", help="login hook")
+    sub.add_parser("report", help="print debugging info to share")
     setup = sub.add_parser("setup", help="hook into i3 and the login")
     setup.add_argument("--no-i3", dest="i3", action="store_false", help="leave the i3 config alone")
     setup.add_argument("--no-session", dest="session", action="store_false", help="leave ~/.xprofile alone")
@@ -48,8 +51,11 @@ def reload_i3() -> None:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    logs.start(sys.argv[1:] if argv is None else argv)
     try:
-        if args.command == "session-init":
+        if args.command == "report":
+            print(report.build(describe_screens()))
+        elif args.command == "session-init":
             print(session.session_init())
         elif args.command == "setup":
             print("\n".join(integrate.setup(i3=args.i3, session=args.session)))
@@ -60,6 +66,7 @@ def main(argv: list[str] | None = None) -> int:
         else:
             with system.file_lock("action"):
                 screens = Screens.detect()
+                log.info("screens:\n%s", screens.describe())
                 if args.command == "on":
                     screens.turn_on(args.screen)
                 elif args.command == "off":
@@ -73,7 +80,17 @@ def main(argv: list[str] | None = None) -> int:
     except system.ScreenError as e:
         system.notify(str(e))
         return 1
+    except Exception:
+        log.exception("crashed")
+        raise
     return 0
+
+
+def describe_screens() -> str:
+    try:
+        return Screens.detect().describe()
+    except Exception as e:
+        return f"(could not detect screens: {e})"
 
 
 def run() -> None:

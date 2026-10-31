@@ -16,6 +16,8 @@ HOME = Path.home()
 CONFIG_DIR = _xdg("XDG_CONFIG_HOME", HOME / ".config") / "miscree"
 CONFIG_FILE = CONFIG_DIR / "config.ini"
 HOOK_FILE = CONFIG_DIR / "post-apply"
+STATE_DIR = _xdg("XDG_STATE_HOME", HOME / ".local" / "state") / "miscree"
+LOG_FILE = STATE_DIR / "miscree.log"
 
 _RUNTIME = os.environ.get("XDG_RUNTIME_DIR")
 RUNTIME_DIR = Path(_RUNTIME) / "miscree" if _RUNTIME else Path(f"/tmp/miscree-{os.getuid()}")

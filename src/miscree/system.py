@@ -18,6 +18,7 @@ import sys
 from pathlib import Path
 
 from miscree import paths
+from miscree.logs import log
 
 
 class ScreenError(Exception):
@@ -26,12 +27,15 @@ class ScreenError(Exception):
 
 def run(cmd: list[str], check: bool = True, input: str | None = None) -> subprocess.CompletedProcess:
     proc = subprocess.run(cmd, capture_output=True, text=True, input=input)
+    err = proc.stderr.strip()
+    log.info("$ %s -> %d%s", " ".join(cmd), proc.returncode, f": {err}" if err else "")
     if check and proc.returncode != 0:
         raise ScreenError(f"{' '.join(cmd)} failed: {proc.stderr.strip()}")
     return proc
 
 
 def notify(message: str) -> None:
+    log.warning("notify: %s", message)
     print(f"miscree: {message}", file=sys.stderr)
     if shutil.which("notify-send"):
         subprocess.run(["notify-send", "-a", "miscree", "-t", "2500", "Display", message], check=False)
@@ -78,6 +82,7 @@ def load_seen() -> set[str] | None:
 def save_seen(names: set[str]) -> None:
     runtime_dir()
     paths.STATE_FILE.write_text(json.dumps({"connected": sorted(names)}))
+    log.debug("seen externals: %s", sorted(names) or "none")
 
 
 def forget_seen() -> None:

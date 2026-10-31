@@ -89,7 +89,24 @@ miscree list
 miscree startup | hotplug
 miscree setup | teardown [--purge]
 miscree session-init
+miscree report
 ```
+
+## Something not working?
+
+Every run is logged to `~/.local/state/miscree/miscree.log`: the command, the git commit it ran
+from, the screens it detected, and every command it ran (`xrandr`, ...) with its exit code and errors.
+
+To report a problem, reproduce it, then share the output of:
+
+```sh
+bin/miscree report > miscree-report.txt
+```
+
+It collects versions, graphics driver, `xrandr --verbose`, DPI and scaling environment, your
+miscree config and i3 / `~/.xprofile` blocks, other display tools that may interfere, and the
+last 200 log lines. Monitor serial numbers (raw EDID) are left out, but it does include paths
+under your home directory; look it over before posting it publicly.
 
 ## Remove
 
@@ -117,6 +134,8 @@ src/miscree/
   session.py    login-time render scale (Xft.dpi, GDK/Qt env)
   integrate.py  i3 / ~/.xprofile setup and teardown
   system.py     every side effect (commands, notifications, locks, state)
+  logs.py       the log file
+  report.py     `miscree report`
   cli.py        command line
   templates/    default config.ini
 ```
@@ -127,4 +146,4 @@ src/miscree/
 - One external display at a time; plugging in another switches to it.
 - Mirroring keeps the aspect ratio (`mirror_fit = letterbox`). If your driver rejects that,
   it falls back to `stretch` automatically.
-- Errors are printed and shown as desktop notifications.
+- Errors are printed, shown as desktop notifications and logged (see above).

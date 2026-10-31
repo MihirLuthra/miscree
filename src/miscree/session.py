@@ -11,6 +11,7 @@ import tempfile
 
 from miscree import system
 from miscree.config import Config
+from miscree.logs import log
 
 
 def session_env(scale: int) -> dict[str, str]:
@@ -34,6 +35,7 @@ def session_init() -> str:
         system.notify(f"{e} (using render_scale 2)")
         scale = 2
     load_x_resources(x_resources(scale))
+    log.info("session render scale %d", scale)
     return "\n".join(f"export {k}={v}" for k, v in session_env(scale).items())
 
 

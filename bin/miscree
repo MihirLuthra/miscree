@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run miscree straight from a source checkout (what `install.sh --link` points at)."""
+"""Run miscree straight from this repo."""
 import os
 import sys
 

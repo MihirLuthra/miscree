@@ -78,8 +78,12 @@ def restore_bindings(text: str) -> str:
                    for line in text.splitlines(keepends=True))
 
 
-def xprofile_body(bin_path: str) -> str:
-    return f'[ -x "{bin_path}" ] && eval "$("{bin_path}" session-init)"'
+def xprofile_body() -> str:
+    return f'[ -x "{paths.BIN}" ] && eval "$("{paths.BIN}" session-init)"'
+
+
+def i3_body() -> str:
+    return f"set $miscree {paths.BIN}\ninclude {paths.I3_SNIPPET}"
 
 
 # ───────────────────────────── file operations ─────────────────────────────
@@ -125,15 +129,14 @@ def validate_i3(path: Path) -> None:
 
 # ───────────────────────────── setup / teardown ─────────────────────────────
 
-def setup(bin_path: str, i3: bool = True, session: bool = True) -> list[str]:
+def setup(i3: bool = True, session: bool = True) -> list[str]:
     report: list[str] = []
     write_if_missing(paths.CONFIG_FILE, template("config.ini"), report)
     if i3:
-        write_if_missing(paths.I3_SNIPPET, template("i3.conf").replace("@BIN@", bin_path), report)
         _setup_i3(report)
     if session:
         old = paths.XPROFILE.read_text() if paths.XPROFILE.exists() else ""
-        update_file(paths.XPROFILE, set_block(old, xprofile_body(bin_path)), report, "login hook")
+        update_file(paths.XPROFILE, set_block(old, xprofile_body()), report, "login hook")
     return report
 
 
@@ -146,7 +149,7 @@ def _setup_i3(report: list[str]) -> None:
     variables = i3_variables(original)
     wanted = {key_combo(line, variables) for line in paths.I3_SNIPPET.read_text().splitlines()} - {None}
     text, disabled = disable_bindings(original, wanted, variables)
-    text = set_block(text, f"include {paths.I3_SNIPPET}")
+    text = set_block(text, i3_body())
     if update_file(config, text, report, "i3 config"):
         try:
             validate_i3(config)

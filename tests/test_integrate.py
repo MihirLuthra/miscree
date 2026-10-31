@@ -47,8 +47,6 @@ class TextHelpersTest(unittest.TestCase):
 
 
 class SetupTest(unittest.TestCase):
-    BIN = "/home/me/.local/bin/miscree"
-
     def setUp(self):
         self.i3 = paths.I3_CONFIG_CANDIDATES[0]
         self.i3.parent.mkdir(parents=True, exist_ok=True)
@@ -63,18 +61,17 @@ class SetupTest(unittest.TestCase):
         shutil.rmtree(paths.CONFIG_DIR, ignore_errors=True)
 
     def test_setup_then_teardown_restores_everything(self):
-        report = integrate.setup(self.BIN)
+        report = integrate.setup()
         i3 = self.i3.read_text()
-        self.assertIn(f"include {paths.I3_SNIPPET}", i3)
+        self.assertIn(f"set $miscree {paths.BIN}\ninclude {paths.I3_SNIPPET}\n", i3)
         self.assertEqual(i3.count(DISABLED), 3)
-        self.assertIn(self.BIN, paths.I3_SNIPPET.read_text())
-        self.assertIn("$mod+semicolon", paths.I3_SNIPPET.read_text())
-        self.assertIn(f'"{self.BIN}" session-init', paths.XPROFILE.read_text())
+        self.assertIn("$miscree on laptop", paths.I3_SNIPPET.read_text())
+        self.assertIn(f'"{paths.BIN}" session-init', paths.XPROFILE.read_text())
         self.assertTrue(paths.CONFIG_FILE.exists())
         self.assertEqual(self.i3.with_name("config.miscree-backup").read_text(), USER_I3)
         self.assertTrue(any("disabled clashing" in line for line in report))
 
-        self.assertTrue(any("already up to date" in line for line in integrate.setup(self.BIN)))
+        self.assertTrue(any("already up to date" in line for line in integrate.setup()))
         self.assertEqual(self.i3.read_text(), i3)
 
         integrate.teardown()
@@ -84,21 +81,21 @@ class SetupTest(unittest.TestCase):
         integrate.teardown(purge=True)
         self.assertFalse(paths.CONFIG_DIR.exists())
 
-    def test_user_edits_to_config_survive_reinstall(self):
-        integrate.setup(self.BIN)
+    def test_user_edits_to_config_survive_rerunning_setup(self):
+        integrate.setup()
         paths.CONFIG_FILE.write_text("[zoom]\nlaptop = 2\n")
-        integrate.setup(self.BIN)
+        integrate.setup()
         self.assertEqual(paths.CONFIG_FILE.read_text(), "[zoom]\nlaptop = 2\n")
 
     def test_opt_outs(self):
-        integrate.setup(self.BIN, i3=False, session=False)
+        integrate.setup(i3=False, session=False)
         self.assertEqual(self.i3.read_text(), USER_I3)
         self.assertEqual(paths.XPROFILE.read_text(), "export FOO=1\n")
 
     def test_rejected_i3_config_is_rolled_back(self):
         with mock.patch.object(integrate, "validate_i3", side_effect=system.ScreenError("nope")):
             with self.assertRaises(system.ScreenError):
-                integrate.setup(self.BIN)
+                integrate.setup()
         self.assertEqual(self.i3.read_text(), USER_I3)
 
 

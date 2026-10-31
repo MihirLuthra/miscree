@@ -48,6 +48,14 @@ class Screens:
         else:
             system.blank_screen()
 
+    def startup(self) -> None:
+        """Login: both screens mirrored, sized for the laptop; otherwise whichever is connected."""
+        system.save_seen({o.name for o in self.externals})
+        if self.laptop and self.external:
+            self._show(self.planner.mirror(lead=self.laptop, follower=self.external))
+        else:
+            self.default()
+
     def hotplug(self) -> None:
         """Plugged in -> that screen alone. Unplugged, or nothing left on -> default.
         Every other output event (including our own xrandr calls) is ignored."""

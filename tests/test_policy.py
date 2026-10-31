@@ -81,6 +81,27 @@ class PolicyTest(unittest.TestCase):
         self.hotplug()
         self.assertEqual(self.x.enabled, {"eDP-1"})
 
+    # ── login ──
+
+    def test_startup_mirrors_sized_for_laptop(self):
+        self.start({"eDP-1", "HDMI-1"}, {"eDP-1", "HDMI-1"})
+        self.screens().startup()
+        self.assertEqual(self.x.enabled, {"eDP-1", "HDMI-1"})
+        self.assertEqual(self.x.last_args()[:2], ["--fb", "2560x1600"])
+        self.assertEqual(self.x.option("HDMI-1", "--same-as"), "eDP-1")
+
+    def test_startup_without_external_uses_laptop(self):
+        self.start({"eDP-1"}, {"eDP-1"})
+        self.screens().startup()
+        self.assertEqual(self.x.enabled, {"eDP-1"})
+        self.assertEqual(self.x.last_args()[:2], ["--fb", "2560x1600"])
+
+    def test_unplug_after_startup_goes_back_to_laptop(self):
+        self.start({"eDP-1", "HDMI-1"}, {"eDP-1", "HDMI-1"})
+        self.screens().startup()
+        self.unplug("HDMI-1")
+        self.assertEqual(self.x.enabled, {"eDP-1"})
+
     # ── shortcuts ──
 
     def test_laptop_on_while_external_on_mirrors_sized_for_laptop(self):

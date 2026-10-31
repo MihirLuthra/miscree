@@ -17,7 +17,8 @@ CONFIG_DIR = _xdg("XDG_CONFIG_HOME", HOME / ".config") / "miscree"
 CONFIG_FILE = CONFIG_DIR / "config.ini"
 HOOK_FILE = CONFIG_DIR / "post-apply"
 
-RUNTIME_DIR = _xdg("XDG_RUNTIME_DIR", Path(f"/tmp/miscree-{os.getuid()}")) / "miscree"
+_RUNTIME = os.environ.get("XDG_RUNTIME_DIR")
+RUNTIME_DIR = Path(_RUNTIME) / "miscree" if _RUNTIME else Path(f"/tmp/miscree-{os.getuid()}")
 DISPLAY_ID = os.environ.get("DISPLAY", ":0").replace("/", "_")
 STATE_FILE = RUNTIME_DIR / f"state-{DISPLAY_ID}.json"
 

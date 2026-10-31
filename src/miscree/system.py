@@ -9,9 +9,13 @@ from __future__ import annotations
 import contextlib
 import fcntl
 import json
+import os
 import shutil
+import stat
 import subprocess
 import sys
+
+from pathlib import Path
 
 from miscree import paths
 
@@ -37,11 +41,24 @@ def blank_screen() -> None:
     run(["xset", "dpms", "force", "off"], check=False)
 
 
+def runtime_dir() -> Path:
+    """The private directory for locks and state: a real directory, owned by us, mode 0700.
+    It may fall back to /tmp, where another user could have planted it (or a symlink) first."""
+    path = paths.RUNTIME_DIR
+    with contextlib.suppress(FileExistsError):
+        path.mkdir(mode=0o700, parents=True)
+    st = os.lstat(path)
+    if not stat.S_ISDIR(st.st_mode) or st.st_uid != os.getuid():
+        raise ScreenError(f"{path} is not a directory owned by you; remove it and try again")
+    if st.st_mode & 0o077:
+        os.chmod(path, 0o700)
+    return path
+
+
 @contextlib.contextmanager
 def file_lock(name: str, blocking: bool = True):
     """Yield True while holding the named lock, False if non-blocking and taken."""
-    paths.RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
-    with open(paths.RUNTIME_DIR / f"{name}-{paths.DISPLAY_ID}.lock", "w") as fh:
+    with open(runtime_dir() / f"{name}-{paths.DISPLAY_ID}.lock", "w") as fh:
         try:
             fcntl.flock(fh, fcntl.LOCK_EX | (0 if blocking else fcntl.LOCK_NB))
         except BlockingIOError:
@@ -59,7 +76,7 @@ def load_seen() -> set[str] | None:
 
 
 def save_seen(names: set[str]) -> None:
-    paths.RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
+    runtime_dir()
     paths.STATE_FILE.write_text(json.dumps({"connected": sorted(names)}))
 
 
